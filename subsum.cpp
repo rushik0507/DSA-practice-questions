@@ -124,3 +124,7 @@ int main()
     cout << numOfsubset(nums, n, a, b);
     return 0;
 }
+
+// spoj  min each child page can read book allocation
+// painters partition
+// 
