@@ -3,4 +3,5 @@ uploading daily question of cp class
 - spoj prata
 - spoj eko
 - Nth Magical Number leetcode
-- painters partition
+- painters partition spoj
+- leetcode 179. Largest Number
