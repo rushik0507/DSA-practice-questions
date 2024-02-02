@@ -80,8 +80,16 @@ public:
         pair<int , int> r = height(node->right);
         return {max(max(l.first,r.first),l.second+r.second+1), max(l.second, r.second) + 1};
     }
-};
 
+    int  childSum(struct Node *node){
+        if (node->left == NULL && node->right == NULL)return 0 ;
+        if(node == NULL)return 0;
+        int l = childSum(node->left);
+        int r= childSum(node->right);
+        node->data+=l+r;
+        return node->data;
+    }
+};
 int main()
 {
     int t;
@@ -92,7 +100,7 @@ int main()
         getline(cin, treeString);
         Node *root = buildTree(treeString);
         Solution ob;
-        cout << ob.largestPath(root).first << endl;
+        cout << ob.childSum(root) << endl;
     }
     return 0;
 }
