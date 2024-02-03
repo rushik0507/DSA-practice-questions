@@ -10,3 +10,4 @@ uploading daily question of cp class
 - https://leetcode.com/problems/minimum-number-of-refueling-stops/description/
 - https://www.geeksforgeeks.org/problems/job-sequencing-problem-1587115620/1?utm_source=geeksforgeeks&utm_medium=ml_article_practice_tab&utm_campaign=article_practice_tab
 - https://www.geeksforgeeks.org/problems/n-queen-problem0315/1
+- https://leetcode.com/problems/longest-common-subsequence/
