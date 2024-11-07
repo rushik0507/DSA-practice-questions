@@ -1,81 +1,86 @@
-package com.example.client;
+public class CryptoUtil {
 
-import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.rpc.AsyncCallback;
-
-public class EncryptionUtils {
-
-    public static void encryptText(String text, String publicMod, String publicExp, AsyncCallback<String> callback) {
-        importKey(publicMod, publicExp, new AsyncCallback<JavaScriptObject>() {
-            @Override
-            public void onSuccess(JavaScriptObject key) {
-                encrypt(text, key, callback);
-            }
-
-            @Override
-            public void onFailure(Throwable caught) {
-                Window.alert("Error importing public key: " + caught.getMessage());
-                callback.onFailure(caught);
-            }
+    // Import key from JWK
+    public native void importKey(String jwk, ImportKeyCallback callback) /*-{
+        var self = this;
+        window.crypto.subtle.importKey(
+            "jwk", // Format of the key
+            JSON.parse(jwk), // Parse the JWK string to JSON
+            {
+                name: "AES-GCM"
+            },
+            true, // Whether the key is extractable (for reuse)
+            ["encrypt", "decrypt"]
+        ).then(function(key) {
+            self.@com.example.client.CryptoUtil::encryptionKey = key;
+            callback.@com.example.client.CryptoUtil.ImportKeyCallback::onSuccess()();
+        }).catch(function(err) {
+            callback.@com.example.client.CryptoUtil.ImportKeyCallback::onError(*)(err.toString());
         });
-    }
+    }-*/;
 
-    private static void encrypt(String text, JavaScriptObject key, AsyncCallback<String> callback) {
-        try {
-            encryptNative(text, key, callback);
-        } catch (Exception e) {
-            Window.alert("Error encrypting text: " + e.getMessage());
-            callback.onFailure(e);
-        }
-    }
+    // Store the imported encryption key
+    private Object encryptionKey;
 
-    private static void importKey(String publicMod, String publicExp, AsyncCallback<JavaScriptObject> callback) {
-        try {
-            importKeyNative(publicMod, publicExp, callback);
-        } catch (Exception e) {
-            Window.alert("Error importing key: " + e.getMessage());
-            callback.onFailure(e);
-        }
-    }
-
-    private static native void importKeyNative(String publicMod, String publicExp, AsyncCallback<JavaScriptObject> callback) /*-{
-        const alg = { name: "RSA-OAEP", hash: "SHA-256" };
-        const jwk = { kty: "RSA", n: publicMod, e: publicExp };
+    // Encrypt data
+    public native void encryptData(String data, EncryptionCallback callback) /*-{
+        var self = this;
+        var iv = window.crypto.getRandomValues(new Uint8Array(12)); // Generate an IV
         
-        $wnd.crypto.subtle.importKey("jwk", jwk, alg, false, ["encrypt"])
-            .then(function(key) {
-                callback.@com.google.gwt.user.client.rpc.AsyncCallback::onSuccess(*)(key);
-            })
-            .catch(function(error) {
-                callback.@com.google.gwt.user.client.rpc.AsyncCallback::onFailure(*)(error);
-            });
+        window.crypto.subtle.encrypt(
+            {
+                name: "AES-GCM",
+                iv: iv
+            },
+            self.@com.example.client.CryptoUtil::encryptionKey,
+            new TextEncoder().encode(data)
+        ).then(function(encrypted) {
+            var encryptedData = new Uint8Array(encrypted);
+            var result = new Uint8Array(iv.length + encryptedData.length);
+            result.set(iv);
+            result.set(encryptedData, iv.length);
+            callback.@com.example.client.CryptoUtil.EncryptionCallback::onSuccess(*)(result);
+        }).catch(function(err) {
+            callback.@com.example.client.CryptoUtil.EncryptionCallback::onError(*)(err.toString());
+        });
     }-*/;
 
-    private static native void encryptNative(String text, JavaScriptObject key, AsyncCallback<String> callback) /*-{
-        const textEncoder = new TextEncoder();
-        const encodedText = textEncoder.encode(text);
+    // Decrypt data
+    public native void decryptData(Uint8Array encryptedData, DecryptionCallback callback) /*-{
+        var self = this;
+        var iv = encryptedData.slice(0, 12); // Extract the IV
+        var data = encryptedData.slice(12); // Extract encrypted data
 
-        $wnd.crypto.subtle.encrypt({ name: "RSA-OAEP" }, key, encodedText)
-            .then(function(cipherText) {
-                const base64Text = btoa(String.fromCharCode(...new Uint8Array(cipherText)));
-                callback.@com.google.gwt.user.client.rpc.AsyncCallback::onSuccess(*)(base64Text);
-            })
-            .catch(function(error) {
-                callback.@com.google.gwt.user.client.rpc.AsyncCallback::onFailure(*)(error);
-            });
+        window.crypto.subtle.decrypt(
+            {
+                name: "AES-GCM",
+                iv: iv
+            },
+            self.@com.example.client.CryptoUtil::encryptionKey,
+            data
+        ).then(function(decrypted) {
+            var decryptedText = new TextDecoder().decode(new Uint8Array(decrypted));
+            callback.@com.example.client.CryptoUtil.DecryptionCallback::onSuccess(*)(decryptedText);
+        }).catch(function(err) {
+            callback.@com.example.client.CryptoUtil.DecryptionCallback::onError(*)(err.toString());
+        });
     }-*/;
 
-    // Utility function to convert Hex to Uint8Array
-    public static Uint8Array convertHexToUint8Array(String hexString) {
-        if (hexString.length() % 2 != 0) {
-            hexString = "0" + hexString;
-        }
-        int length = hexString.length() / 2;
-        Uint8Array array = new Uint8Array(length);
-        for (int i = 0; i < length; i++) {
-            array.set(i, Integer.parseInt(hexString.substring(i * 2, i * 2 + 2), 16));
-        }
-        return array;
+    // Callback interface for importing key
+    public interface ImportKeyCallback {
+        void onSuccess();
+        void onError(String error);
+    }
+
+    // Callback interface for encryption
+    public interface EncryptionCallback {
+        void onSuccess(Uint8Array encryptedData);
+        void onError(String error);
+    }
+
+    // Callback interface for decryption
+    public interface DecryptionCallback {
+        void onSuccess(String decryptedText);
+        void onError(String error);
     }
 }
